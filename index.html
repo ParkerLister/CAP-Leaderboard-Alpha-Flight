@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Alpha Flight Leaderboard</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 30px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #e0dbc8;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 30px;
+      color: #333;
+    }
+
+    table {
+      margin: auto;
+      width: 70%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 18px 28px;
+      font-size: 1.3em;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #2c3e50;
+      color: white;
+      font-size: 1.4em;
+    }
+
+    tr:nth-child(even):not(.gold):not(.silver):not(.bronze) {
+      background-color: #f9f9f9;
+    }
+
+    .gold {
+      background-color: #FFD700 !important;
+      font-weight: bold;
+    }
+
+    .silver {
+      background-color: #C0C0C0 !important;
+      font-weight: bold;
+    }
+
+    .bronze {
+      background-color: #CD7F32 !important;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Alpha Flight Leaderboard</h1>
+
+  <table id="leaderboard">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Element Name</th>
+        <th>Total Points</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- CSV Parser -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <script>
+    const CSV_URL =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQLRvJNay-czVwMw8a_J6KgYNTtRJR9fqYJom2fvNaYThzPqGGc_kQQUI77Jl9C2ta7dBEL5lH5PK7n/pub?output=csv";
+
+    const REFRESH_INTERVAL = 30000; // 30 seconds
+
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch(CSV_URL);
+        if (!response.ok) throw new Error("Failed to fetch leaderboard data");
+
+        const csvText = await response.text();
+        const parsed = Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true
+        });
+
+        const data = parsed.data
+          .map(row => {
+            const name = row["Name"]?.trim();
+            const score = Number(row["Score"]);
+            if (!name || isNaN(score)) return null;
+            return { name, score };
+          })
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score);
+
+        const tbody = document.querySelector("#leaderboard tbody");
+        tbody.innerHTML = "";
+
+        data.forEach((entry, index) => {
+          const tr = document.createElement("tr");
+
+          if (index === 0) tr.classList.add("gold");
+          else if (index === 1) tr.classList.add("silver");
+          else if (index === 2) tr.classList.add("bronze");
+
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${entry.name}</td>
+            <td>${entry.score}</td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error("Leaderboard error:", err);
+      }
+    }
+
+    loadLeaderboard();
+    setInterval(loadLeaderboard, REFRESH_INTERVAL);
+  </script>
+
+</body>
+</html>
